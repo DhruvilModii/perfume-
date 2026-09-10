@@ -1,0 +1,171 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --bg-primary: #0a0908;
+  --bg-secondary: #0f0e0c;
+  --bg-tertiary: #141311;
+  --bg-quat: #1c1a17;
+  --accent: #c9a878;
+  --accent-warm: #e0c99a;
+  --accent-muted: #8a7654;
+  --text-primary: #f5f0e6;
+  --text-secondary: #a09585;
+  --text-tertiary: #5c5347;
+  color-scheme: dark;
+}
+
+html {
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  scroll-behavior: auto;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  font-family: 'Inter', system-ui, sans-serif;
+  font-weight: 400;
+  overflow-x: hidden;
+}
+
+/* Lenis smooth scroll */
+html.lenis,
+html.lenis body {
+  height: auto;
+}
+.lenis.lenis-smooth {
+  scroll-behavior: auto !important;
+}
+.lenis.lenis-smooth [data-lenis-prevent] {
+  overscroll-behavior: contain;
+}
+.lenis.lenis-stopped {
+  overflow: hidden;
+}
+.lenis.lenis-scrolling iframe {
+  pointer-events: none;
+}
+
+/* Selection */
+::selection {
+  background: rgba(201, 168, 120, 0.35);
+  color: var(--text-primary);
+}
+
+/* Scrollbar */
+::-webkit-scrollbar {
+  width: 0;
+  height: 0;
+}
+
+/* Hide default cursor on desktop when custom cursor is active */
+.custom-cursor-active,
+.custom-cursor-active * {
+  cursor: none !important;
+}
+@media (hover: none), (pointer: coarse) {
+  .custom-cursor-active,
+  .custom-cursor-active * {
+    cursor: auto !important;
+  }
+}
+
+/* Utility: cinematic grain overlay */
+.grain::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background-image: url("data:image/svg+xml;utf8,<svg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0.96 0 0 0 0 0.94 0 0 0 0 0.9 0 0 0 0.35 0'/></filter><rect width='100%25' height='100%25' filter='url(%23n)' opacity='0.6'/></svg>");
+  opacity: 0.08;
+  mix-blend-mode: overlay;
+  z-index: 2;
+}
+
+/* Utility: soft glow */
+.soft-glow {
+  filter: drop-shadow(0 0 30px rgba(201, 168, 120, 0.28))
+    drop-shadow(0 0 90px rgba(201, 168, 120, 0.12));
+}
+
+/* Text stroke fallback for outlined display */
+.text-outline {
+  -webkit-text-stroke: 1px rgba(245, 240, 230, 0.35);
+  color: transparent;
+}
+
+/* Vignette */
+.vignette::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: radial-gradient(
+    circle at 50% 50%,
+    transparent 55%,
+    rgba(0, 0, 0, 0.55) 100%
+  );
+  z-index: 1;
+}
+
+/* Focus states */
+:focus-visible {
+  outline: 1px solid var(--accent);
+  outline-offset: 3px;
+}
+
+/* Reduce motion:
+   Framer Motion handles JS-driven motion via its own MotionConfig. Here we
+   only tame long CSS-driven idle loops (grain shimmer, marquee, float) so
+   they don't run when the OS asks for less motion. */
+@media (prefers-reduced-motion: reduce) {
+  .marquee-track,
+  .float-slow,
+  .hairline-shimmer {
+    animation: none !important;
+  }
+  html {
+    scroll-behavior: auto !important;
+  }
+}
+
+/* Marquee keyframes */
+@keyframes marquee {
+  from { transform: translateX(0); }
+  to { transform: translateX(-50%); }
+}
+.marquee-track {
+  animation: marquee 40s linear infinite;
+}
+
+/* Slow float */
+@keyframes floatSlow {
+  0%, 100% { transform: translate3d(0, 0, 0); }
+  50% { transform: translate3d(0, -12px, 0); }
+}
+.float-slow {
+  animation: floatSlow 8s ease-in-out infinite;
+}
+
+/* Shimmer for hairline dividers */
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+.hairline-shimmer {
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(201, 168, 120, 0.55) 50%,
+    transparent 100%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 6s linear infinite;
+}
