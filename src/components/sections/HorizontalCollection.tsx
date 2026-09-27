@@ -1,5 +1,6 @@
 import { motion, useScroll, useTransform } from 'framer-motion'
 import { useRef } from 'react'
+import { Link } from 'react-router-dom'
 import { fragrances } from '../../data/products'
 import { WordsReveal } from '../atoms/TextReveal'
 
@@ -104,13 +105,17 @@ function CollectionCard({
 }) {
   const isTall = index % 2 === 0
   return (
-    <motion.article
+    <motion.div
       whileHover="hover"
       initial="rest"
       animate="rest"
-      className={`group relative flex shrink-0 flex-col justify-between overflow-hidden rounded-xl border border-bone-100/10 bg-ink-900/70 backdrop-blur-xl ${
+      className={`shrink-0 ${
         isTall ? 'h-[70vh] w-[62vw] md:w-[38vw]' : 'h-[62vh] w-[62vw] md:w-[34vw]'
       }`}
+    >
+    <Link
+      to={`/fragrances/${f.slug}`}
+      className="group relative flex h-full w-full flex-col justify-between overflow-hidden rounded-xl border border-bone-100/10 bg-ink-900/70 backdrop-blur-xl"
       data-cursor="product"
       data-cursor-label="View"
     >
@@ -208,7 +213,8 @@ function CollectionCard({
 
       {/* Hairline */}
       <span className="pointer-events-none absolute inset-x-6 top-1/2 h-px bg-gradient-to-r from-transparent via-champagne-400/25 to-transparent opacity-0 transition-opacity duration-700 group-hover:opacity-100" />
-    </motion.article>
+    </Link>
+    </motion.div>
   )
 }
 
@@ -224,13 +230,13 @@ function ClosingPanel() {
       <p className="max-w-xs font-light leading-relaxed text-bone-300">
         Five parfums, unnumbered testers, and one letter from the perfumer.
       </p>
-      <a
-        href="#contact"
+      <Link
+        to="/fragrances"
         data-cursor="button"
         className="mt-4 inline-flex items-center gap-2 border-b border-champagne-500/60 pb-1 font-mono text-[11px] uppercase tracking-widest2 text-bone-100"
       >
-        Request the box
-      </a>
+        Read the anthology
+      </Link>
     </div>
   )
 }

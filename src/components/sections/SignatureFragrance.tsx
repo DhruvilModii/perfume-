@@ -1,11 +1,13 @@
 import { motion, useScroll, useTransform } from 'framer-motion'
 import { useRef } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { signatureFragrance } from '../../data/products'
 import { MagneticButton } from '../atoms/MagneticButton'
 import { PerfumeBottle } from '../atoms/PerfumeBottle'
 import { WordsReveal } from '../atoms/TextReveal'
 
 export function SignatureFragrance() {
+  const navigate = useNavigate()
   const ref = useRef<HTMLElement>(null)
   const { scrollYProgress } = useScroll({
     target: ref,
@@ -89,7 +91,12 @@ export function SignatureFragrance() {
                 {f.sizes[1] ? f.sizes[1].ml : f.sizes[0].ml} ML · incl. taxes
               </div>
             </div>
-            <MagneticButton variant="primary">Discover Fragrance</MagneticButton>
+            <MagneticButton
+              variant="primary"
+              onClick={() => navigate(`/fragrances/${f.slug}`)}
+            >
+              Discover Fragrance
+            </MagneticButton>
           </div>
         </div>
 

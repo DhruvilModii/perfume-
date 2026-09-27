@@ -1,5 +1,6 @@
 import { motion, useScroll, useTransform } from 'framer-motion'
 import { useRef } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { MagneticButton } from '../atoms/MagneticButton'
 import { PerfumeBottle } from '../atoms/PerfumeBottle'
 import { WordsReveal } from '../atoms/TextReveal'
@@ -10,6 +11,7 @@ import { WordsReveal } from '../atoms/TextReveal'
  * parallax give the section its own atmosphere.
  */
 export function FinalCTA() {
+  const navigate = useNavigate()
   const ref = useRef<HTMLElement>(null)
   const { scrollYProgress } = useScroll({
     target: ref,
@@ -78,8 +80,12 @@ export function FinalCTA() {
             with a handwritten note from the perfumer.
           </p>
           <div className="mt-10 flex flex-wrap items-center gap-4">
-            <MagneticButton variant="primary">Explore the Collection</MagneticButton>
-            <MagneticButton variant="ghost">Book a fitting</MagneticButton>
+            <MagneticButton variant="primary" onClick={() => navigate('/fragrances')}>
+              Explore the Collection
+            </MagneticButton>
+            <MagneticButton variant="ghost" onClick={() => navigate('/contact')}>
+              Book a fitting
+            </MagneticButton>
           </div>
         </div>
 

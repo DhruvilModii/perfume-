@@ -5,6 +5,7 @@ import { CustomCursor } from '../CustomCursor'
 import { Navbar } from '../Navbar'
 import { ScrollProgress } from '../ScrollProgress'
 import { Footer } from '../sections/Footer'
+import { CartDrawer } from '../commerce/CartDrawer'
 import { useLenis } from '../../hooks/useLenis'
 
 /**
@@ -40,6 +41,7 @@ export function SiteLayout() {
       </AnimatePresence>
 
       <Footer />
+      <CartDrawer />
     </div>
   )
 }

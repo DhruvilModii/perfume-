@@ -1,6 +1,9 @@
 import { AnimatePresence, motion, useMotionValueEvent, useScroll } from 'framer-motion'
 import { useEffect, useState } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
+import { useAuth } from '../context/AuthContext'
+import { useCart } from '../context/CartContext'
+import { useWishlist } from '../context/WishlistContext'
 import { MagneticButton } from './atoms/MagneticButton'
 
 const links = [
@@ -16,6 +19,9 @@ export function Navbar() {
   const { scrollY } = useScroll()
   const location = useLocation()
   const navigate = useNavigate()
+  const cart = useCart()
+  const wishlist = useWishlist()
+  const { user, isAuthenticated, logout } = useAuth()
 
   useMotionValueEvent(scrollY, 'change', (v) => setScrolled(v > 60))
 
@@ -107,6 +113,58 @@ export function Navbar() {
           </ul>
 
           <div className="flex items-center gap-2">
+            {/* Wishlist */}
+            <Link
+              to="/wishlist"
+              data-cursor="button"
+              aria-label={`Wishlist${wishlist.count ? ` (${wishlist.count})` : ''}`}
+              className="relative hidden h-10 w-10 items-center justify-center rounded-full border border-bone-100/15 text-bone-100/80 transition hover:border-champagne-500/50 hover:text-champagne-400 md:flex"
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24">
+                <path
+                  d="M12 21s-7-4.5-9.5-9C.5 7.5 3.5 4 7 4c2 0 3.5 1.2 5 3 1.5-1.8 3-3 5-3 3.5 0 6.5 3.5 4.5 8-2.5 4.5-9.5 9-9.5 9z"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.4"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+              </svg>
+              <CountBadge count={wishlist.count} />
+            </Link>
+
+            {/* Cart */}
+            <button
+              type="button"
+              onClick={() => cart.openCart()}
+              data-cursor="button"
+              aria-label={`Open cart${cart.totalQuantity ? ` (${cart.totalQuantity})` : ''}`}
+              className="relative flex h-10 w-10 items-center justify-center rounded-full border border-bone-100/15 text-bone-100/80 transition hover:border-champagne-500/50 hover:text-champagne-400"
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+                <path
+                  d="M4 6h3l2 12h10l2-9H8"
+                  stroke="currentColor"
+                  strokeWidth="1.4"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+                <circle cx="10" cy="21" r="1.2" fill="currentColor" />
+                <circle cx="18" cy="21" r="1.2" fill="currentColor" />
+              </svg>
+              <CountBadge count={cart.totalQuantity} />
+            </button>
+
+            {/* Account (desktop) */}
+            <div className="relative hidden md:block">
+              <AccountMenu
+                user={user}
+                isAuthenticated={isAuthenticated}
+                logout={logout}
+                onNavigate={(p) => navigate(p)}
+              />
+            </div>
+
             <div className="hidden md:block">
               <MagneticButton
                 variant="ring"
@@ -178,6 +236,73 @@ export function Navbar() {
                 </motion.li>
               ))}
             </ul>
+
+            <ul className="mt-10 flex flex-col items-start gap-1 px-8 font-mono text-[12px] uppercase tracking-widest2">
+              <motion.li
+                initial={{ y: 30, opacity: 0 }}
+                animate={{ y: 0, opacity: 1 }}
+                transition={{ delay: 0.32, duration: 0.5 }}
+              >
+                <Link
+                  to="/wishlist"
+                  onClick={() => setMenuOpen(false)}
+                  className="flex items-center gap-3 py-2 text-bone-100/80"
+                >
+                  <span>Wishlist</span>
+                  {wishlist.count > 0 && (
+                    <span className="rounded-full border border-champagne-500/60 bg-champagne-500/10 px-2 py-0.5 text-[9px] text-champagne-400">
+                      {wishlist.count}
+                    </span>
+                  )}
+                </Link>
+              </motion.li>
+              <motion.li
+                initial={{ y: 30, opacity: 0 }}
+                animate={{ y: 0, opacity: 1 }}
+                transition={{ delay: 0.36, duration: 0.5 }}
+              >
+                <button
+                  onClick={() => {
+                    setMenuOpen(false)
+                    cart.openCart()
+                  }}
+                  className="flex items-center gap-3 py-2 text-bone-100/80"
+                >
+                  <span>Cart</span>
+                  {cart.totalQuantity > 0 && (
+                    <span className="rounded-full border border-champagne-500/60 bg-champagne-500/10 px-2 py-0.5 text-[9px] text-champagne-400">
+                      {cart.totalQuantity}
+                    </span>
+                  )}
+                </button>
+              </motion.li>
+              <motion.li
+                initial={{ y: 30, opacity: 0 }}
+                animate={{ y: 0, opacity: 1 }}
+                transition={{ delay: 0.4, duration: 0.5 }}
+              >
+                {isAuthenticated ? (
+                  <button
+                    onClick={() => {
+                      logout()
+                      setMenuOpen(false)
+                    }}
+                    className="flex items-center gap-3 py-2 text-bone-100/80"
+                  >
+                    Sign out ({user?.name})
+                  </button>
+                ) : (
+                  <Link
+                    to="/account/login"
+                    onClick={() => setMenuOpen(false)}
+                    className="flex items-center gap-3 py-2 text-bone-100/80"
+                  >
+                    Sign in
+                  </Link>
+                )}
+              </motion.li>
+            </ul>
+
             <div className="mt-14 px-8 font-mono text-[10px] uppercase tracking-widest2 text-bone-300/60">
               <div>Maison Noir · Est. 2024</div>
               <div className="mt-1">Bombay · Grasse · Paris</div>
@@ -186,5 +311,130 @@ export function Navbar() {
         )}
       </AnimatePresence>
     </>
+  )
+}
+
+function CountBadge({ count }: { count: number }) {
+  if (!count) return null
+  return (
+    <motion.span
+      key={count}
+      initial={{ scale: 0.5, opacity: 0 }}
+      animate={{ scale: 1, opacity: 1 }}
+      transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
+      className="absolute -right-1 -top-1 flex h-4 min-w-[16px] items-center justify-center rounded-full border border-ink-950 bg-champagne-500 px-1 font-mono text-[9px] tracking-widest2 text-ink-950"
+    >
+      {count > 9 ? '9+' : count}
+    </motion.span>
+  )
+}
+
+function AccountMenu({
+  user,
+  isAuthenticated,
+  logout,
+  onNavigate
+}: {
+  user: { name: string; email: string } | null
+  isAuthenticated: boolean
+  logout: () => void
+  onNavigate: (path: string) => void
+}) {
+  const [open, setOpen] = useState(false)
+
+  useEffect(() => {
+    if (!open) return
+    const close = () => setOpen(false)
+    document.addEventListener('click', close)
+    return () => document.removeEventListener('click', close)
+  }, [open])
+
+  return (
+    <>
+      <button
+        type="button"
+        onClick={(e) => {
+          e.stopPropagation()
+          setOpen((v) => !v)
+        }}
+        data-cursor="button"
+        aria-label="Account"
+        aria-expanded={open}
+        className="flex h-10 w-10 items-center justify-center rounded-full border border-bone-100/15 text-bone-100/80 transition hover:border-champagne-500/50 hover:text-champagne-400"
+      >
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+          <circle
+            cx="12"
+            cy="8"
+            r="4"
+            stroke="currentColor"
+            strokeWidth="1.4"
+          />
+          <path
+            d="M4 21c1.5-4 5-6 8-6s6.5 2 8 6"
+            stroke="currentColor"
+            strokeWidth="1.4"
+            strokeLinecap="round"
+          />
+        </svg>
+      </button>
+      <AnimatePresence>
+        {open && (
+          <motion.div
+            initial={{ opacity: 0, y: -8 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -8 }}
+            transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
+            className="absolute right-0 top-12 z-50 w-56 overflow-hidden rounded-2xl border border-bone-100/10 bg-ink-950/95 shadow-xl backdrop-blur-xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-champagne-400/40 to-transparent" />
+            {isAuthenticated ? (
+              <>
+                <div className="border-b border-bone-100/10 px-4 py-3">
+                  <div className="font-mono text-[10px] uppercase tracking-widest2 text-champagne-400">
+                    Signed in
+                  </div>
+                  <div className="mt-1 font-display text-base text-bone-100">
+                    {user?.name}
+                  </div>
+                  <div className="mt-0.5 font-mono text-[10px] tracking-widest2 text-bone-300/60">
+                    {user?.email}
+                  </div>
+                </div>
+                <MenuItem onClick={() => onNavigate('/wishlist')}>Wishlist</MenuItem>
+                <MenuItem
+                  onClick={() => {
+                    logout()
+                    setOpen(false)
+                  }}
+                >
+                  Sign out
+                </MenuItem>
+              </>
+            ) : (
+              <>
+                <MenuItem onClick={() => onNavigate('/account/login')}>Sign in</MenuItem>
+                <MenuItem onClick={() => onNavigate('/account/signup')}>Create account</MenuItem>
+              </>
+            )}
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </>
+  )
+}
+
+function MenuItem({ children, onClick }: { children: React.ReactNode; onClick: () => void }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      data-cursor="button"
+      className="flex w-full items-center justify-between px-4 py-3 font-mono text-[11px] uppercase tracking-widest2 text-bone-100/80 transition hover:bg-champagne-500/10 hover:text-champagne-400"
+    >
+      {children}
+      <span aria-hidden>→</span>
+    </button>
   )
 }

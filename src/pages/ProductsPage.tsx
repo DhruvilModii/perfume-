@@ -7,29 +7,35 @@ import {
   useTransform
 } from 'framer-motion'
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
-import { GlassCard } from '../components/atoms/GlassCard'
+import { Link, useNavigate } from 'react-router-dom'
 import { MagneticButton } from '../components/atoms/MagneticButton'
 import { PerfumeBottle } from '../components/atoms/PerfumeBottle'
 import { TextReveal, WordsReveal } from '../components/atoms/TextReveal'
+import { StarRating } from '../components/commerce/StarRating'
+import { WishlistButton } from '../components/commerce/WishlistButton'
+import { useCart } from '../context/CartContext'
 import {
   Audience,
   FragranceCategory,
   Fragrance,
   audiences,
+  brands,
   categories,
   formatPrice,
-  fragrances
+  fragrances,
+  minSizePrice
 } from '../data/products'
 
 type Category = FragranceCategory | 'All'
 type AudienceFilter = Audience | 'All'
-type SortKey = 'featured' | 'price-asc' | 'price-desc' | 'newest'
+type BrandFilter = string | 'All'
+type SortKey = 'featured' | 'price-asc' | 'price-desc' | 'newest' | 'rating'
 
 export default function ProductsPage() {
   const [query, setQuery] = useState('')
   const [audience, setAudience] = useState<AudienceFilter>('All')
   const [category, setCategory] = useState<Category>('All')
+  const [brand, setBrand] = useState<BrandFilter>('All')
   const [priceRange, setPriceRange] = useState<[number, number]>([0, 6000])
   const [sort, setSort] = useState<SortKey>('featured')
   const [detail, setDetail] = useState<Fragrance | null>(null)
@@ -39,11 +45,13 @@ export default function ProductsPage() {
     const list = fragrances.filter((f) => {
       if (audience !== 'All' && f.audience !== audience) return false
       if (category !== 'All' && f.category !== category) return false
-      const minPrice = Math.min(...f.sizes.map((s) => s.price))
+      if (brand !== 'All' && f.brand !== brand) return false
+      const minPrice = minSizePrice(f)
       if (minPrice < priceRange[0] || minPrice > priceRange[1]) return false
       if (!q) return true
       return (
         f.name.toLowerCase().includes(q) ||
+        f.brand.toLowerCase().includes(q) ||
         f.category.toLowerCase().includes(q) ||
         f.fragranceFamily.toLowerCase().includes(q) ||
         [...f.topNotes, ...f.heartNotes, ...f.baseNotes]
@@ -54,21 +62,19 @@ export default function ProductsPage() {
     })
     switch (sort) {
       case 'price-asc':
-        return [...list].sort(
-          (a, b) => Math.min(...a.sizes.map((s) => s.price)) - Math.min(...b.sizes.map((s) => s.price))
-        )
+        return [...list].sort((a, b) => minSizePrice(a) - minSizePrice(b))
       case 'price-desc':
-        return [...list].sort(
-          (a, b) => Math.min(...b.sizes.map((s) => s.price)) - Math.min(...a.sizes.map((s) => s.price))
-        )
+        return [...list].sort((a, b) => minSizePrice(b) - minSizePrice(a))
       case 'newest':
         return [...list].sort((a, b) => Number(!!b.isNew) - Number(!!a.isNew))
+      case 'rating':
+        return [...list].sort((a, b) => b.rating - a.rating)
       default:
         return [...list].sort(
           (a, b) => Number(!!b.featured) - Number(!!a.featured)
         )
     }
-  }, [query, audience, category, priceRange, sort])
+  }, [query, audience, category, brand, priceRange, sort])
 
   const featured = filtered.find((f) => f.featured) ?? filtered[0]
 
@@ -82,6 +88,8 @@ export default function ProductsPage() {
         setAudience={setAudience}
         category={category}
         setCategory={setCategory}
+        brand={brand}
+        setBrand={setBrand}
         priceRange={priceRange}
         setPriceRange={setPriceRange}
         sort={sort}
@@ -196,6 +204,8 @@ function ControlsBar({
   setAudience,
   category,
   setCategory,
+  brand,
+  setBrand,
   priceRange,
   setPriceRange,
   sort,
@@ -208,6 +218,8 @@ function ControlsBar({
   setAudience: (v: AudienceFilter) => void
   category: Category
   setCategory: (v: Category) => void
+  brand: BrandFilter
+  setBrand: (v: BrandFilter) => void
   priceRange: [number, number]
   setPriceRange: (v: [number, number]) => void
   sort: SortKey
@@ -217,6 +229,7 @@ function ControlsBar({
   const [filtersOpen, setFiltersOpen] = useState(false)
   const audFilters: AudienceFilter[] = ['All', ...audiences]
   const catFilters: Category[] = ['All', ...categories]
+  const brandFilters: BrandFilter[] = ['All', ...brands]
 
   return (
     <section className="sticky top-16 z-30 border-y border-bone-100/10 bg-ink-950/80 py-4 backdrop-blur-xl md:top-20">
@@ -267,7 +280,7 @@ function ControlsBar({
             <input
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              placeholder="Search notes, family…"
+              placeholder="Search name, brand, notes…"
               className="w-full rounded-full border border-bone-100/15 bg-black/30 py-2 pl-9 pr-4 font-mono text-[11px] uppercase tracking-widest2 text-bone-100 placeholder:normal-case placeholder:tracking-normal placeholder:text-bone-300/40 focus:border-champagne-500/60 focus:outline-none"
               aria-label="Search fragrances"
             />
@@ -308,6 +321,26 @@ function ControlsBar({
                     </button>
                   ))}
                 </div>
+
+                <FieldLabel>
+                  <span className="mt-6 inline-block">Brand</span>
+                </FieldLabel>
+                <div className="mt-3 flex flex-wrap gap-2">
+                  {brandFilters.map((b) => (
+                    <button
+                      key={b}
+                      data-cursor="button"
+                      onClick={() => setBrand(b)}
+                      className={`rounded-full border px-3 py-1.5 font-mono text-[10px] uppercase tracking-widest2 transition ${
+                        brand === b
+                          ? 'border-champagne-500/70 bg-champagne-500/10 text-champagne-400'
+                          : 'border-bone-100/15 text-bone-100/70 hover:border-champagne-500/40'
+                      }`}
+                    >
+                      {b}
+                    </button>
+                  ))}
+                </div>
               </div>
 
               <div className="col-span-12 md:col-span-4">
@@ -336,6 +369,7 @@ function ControlsBar({
                   onClick={() => {
                     setAudience('All')
                     setCategory('All')
+                    setBrand('All')
                     setPriceRange([0, 6000])
                     setQuery('')
                   }}
@@ -370,9 +404,10 @@ function SortSelect({
 }) {
   const options: { value: SortKey; label: string }[] = [
     { value: 'featured', label: 'Featured' },
+    { value: 'newest', label: 'Newest' },
+    { value: 'rating', label: 'Rating' },
     { value: 'price-asc', label: 'Price: Low → High' },
-    { value: 'price-desc', label: 'Price: High → Low' },
-    { value: 'newest', label: 'Newest' }
+    { value: 'price-desc', label: 'Price: High → Low' }
   ]
   return (
     <div className="relative">
@@ -416,6 +451,7 @@ function FeaturedFragrance({
   f: Fragrance
   onOpen: () => void
 }) {
+  const navigate = useNavigate()
   const ref = useRef<HTMLElement>(null)
   const { scrollYProgress } = useScroll({
     target: ref,
@@ -475,9 +511,18 @@ function FeaturedFragrance({
                 </div>
               ))}
             </div>
-            <MagneticButton variant="primary" onClick={onOpen}>
-              View Fragrance
-            </MagneticButton>
+            <div className="flex flex-wrap items-center gap-2">
+              <MagneticButton
+                variant="primary"
+                onClick={() => navigate(`/fragrances/${f.slug}`)}
+              >
+                View Fragrance
+              </MagneticButton>
+              <MagneticButton variant="ghost" onClick={onOpen}>
+                Quick View
+              </MagneticButton>
+              <WishlistButton productId={f.id} size="md" stopPropagation={false} />
+            </div>
           </div>
         </div>
 
@@ -602,23 +647,37 @@ function ProductCard({
 }) {
   const cardRef = useRef<HTMLDivElement>(null)
   const isMinimal = layout.variant === 'minimal'
+  const navigate = useNavigate()
+  const cart = useCart()
+
+  const openDetail = () => navigate(`/fragrances/${f.slug}`)
+  const quickView = (e: React.MouseEvent) => {
+    e.stopPropagation()
+    onOpen()
+  }
+  const handleAddToCart = (e: React.MouseEvent) => {
+    e.stopPropagation()
+    if (f.stock <= 0) return
+    cart.addItem(f, f.sizes[0].ml, 1)
+    cart.openCart()
+  }
 
   return (
     <motion.article
       ref={cardRef}
       onMouseEnter={() => onHover(true)}
       onMouseLeave={() => onHover(false)}
-      onClick={onOpen}
+      onClick={openDetail}
       whileHover={{ y: -3 }}
       transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
       data-cursor="product"
       data-cursor-label="View"
-      role="button"
+      role="link"
       tabIndex={0}
       onKeyDown={(e) => {
         if (e.key === 'Enter' || e.key === ' ') {
           e.preventDefault()
-          onOpen()
+          openDetail()
         }
       }}
       animate={{
@@ -661,52 +720,83 @@ function ProductCard({
       )}
 
       {/* Chip */}
-      <div className="relative z-10 flex items-center justify-between p-5 md:p-6">
-        <span className="font-mono text-[10px] uppercase tracking-widest2 text-bone-100/70">
-          No. {f.index}
-        </span>
-        <div className="flex items-center gap-2">
-          {f.isNew && (
-            <span className="rounded-full border border-champagne-500/70 bg-champagne-500/10 px-2 py-0.5 font-mono text-[9px] uppercase tracking-widest2 text-champagne-400">
-              New
-            </span>
-          )}
-          <span
-            className="rounded-full border border-bone-100/15 px-2 py-0.5 font-mono text-[9px] uppercase tracking-widest2 text-bone-100/70 backdrop-blur"
-            style={{ background: `${f.accent}11` }}
-          >
-            {f.category}
+      <div className="relative z-10 flex items-start justify-between p-5 md:p-6">
+        <div className="flex flex-col gap-1">
+          <span className="font-mono text-[10px] uppercase tracking-widest2 text-bone-100/70">
+            No. {f.index} · {f.brand}
           </span>
+          <div className="flex items-center gap-2">
+            {f.isNew && (
+              <span className="rounded-full border border-champagne-500/70 bg-champagne-500/10 px-2 py-0.5 font-mono text-[9px] uppercase tracking-widest2 text-champagne-400">
+                New
+              </span>
+            )}
+            {f.discount && (
+              <span className="rounded-full border border-champagne-500/70 bg-champagne-500/15 px-2 py-0.5 font-mono text-[9px] uppercase tracking-widest2 text-champagne-400">
+                −{f.discount}%
+              </span>
+            )}
+            <span
+              className="rounded-full border border-bone-100/15 px-2 py-0.5 font-mono text-[9px] uppercase tracking-widest2 text-bone-100/70 backdrop-blur"
+              style={{ background: `${f.accent}11` }}
+            >
+              {f.category}
+            </span>
+          </div>
         </div>
+        <WishlistButton productId={f.id} size="sm" />
       </div>
 
       {/* Content */}
       <div className="absolute inset-x-5 bottom-5 z-10 md:inset-x-6 md:bottom-6">
-        <div className="mb-2 flex items-baseline justify-between">
+        <div className="mb-2 flex items-baseline justify-between gap-3">
           <h4 className="font-display text-2xl leading-tight text-bone-100 md:text-3xl">
             {f.name}
           </h4>
           <motion.span
             animate={{ opacity: hovered ? 1 : 0, x: hovered ? 0 : -4 }}
             transition={{ duration: 0.4 }}
-            className="hidden font-mono text-[10px] uppercase tracking-widest2 text-champagne-400 md:inline"
+            className="hidden shrink-0 font-mono text-[10px] uppercase tracking-widest2 text-champagne-400 md:inline"
           >
             View →
           </motion.span>
         </div>
-        <p className="mb-4 line-clamp-2 max-w-sm font-light leading-relaxed text-bone-300/80">
+        <p className="mb-3 line-clamp-2 max-w-sm font-light leading-relaxed text-bone-300/80">
           {f.tagline}
         </p>
+        <div className="mb-3">
+          <StarRating value={f.rating} reviewCount={f.reviewCount} />
+        </div>
         <div className="flex items-end justify-between border-t border-bone-100/10 pt-3">
           <div>
             <div className="font-display text-xl text-bone-100 md:text-2xl">
-              {formatPrice(Math.min(...f.sizes.map((s) => s.price)))}
+              {formatPrice(minSizePrice(f))}
             </div>
             <div className="font-mono text-[9px] uppercase tracking-widest2 text-bone-300/50">
               from {f.sizes[0].ml} ML
             </div>
           </div>
-          <IndicatorRow f={f} tiny />
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={quickView}
+              data-cursor="button"
+              aria-label={`Quick view ${f.name}`}
+              className="hidden h-9 items-center rounded-full border border-bone-100/20 px-3 font-mono text-[9px] uppercase tracking-widest2 text-bone-100/70 transition hover:border-champagne-500/60 hover:text-champagne-400 md:inline-flex"
+            >
+              Quick
+            </button>
+            <button
+              type="button"
+              onClick={handleAddToCart}
+              disabled={f.stock <= 0}
+              data-cursor="button"
+              aria-label={`Add ${f.name} to cart`}
+              className="inline-flex h-9 items-center rounded-full border border-champagne-500/60 bg-champagne-500/10 px-3 font-mono text-[9px] uppercase tracking-widest2 text-bone-100 transition hover:bg-champagne-500/20 disabled:cursor-not-allowed disabled:opacity-40"
+            >
+              {f.stock <= 0 ? 'Waitlist' : 'Add'}
+            </button>
+          </div>
         </div>
       </div>
 
@@ -852,6 +942,7 @@ function ProductDetail({
   onClose: () => void
 }) {
   const navigate = useNavigate()
+  const cart = useCart()
   const [size, setSize] = useState(0)
   useEffect(() => {
     setSize(0)
@@ -1016,14 +1107,27 @@ function ProductDetail({
                   {fragrance.sizes[size].ml} ML · incl. taxes
                 </div>
               </div>
-              <div className="flex gap-2">
+              <div className="flex flex-wrap items-center gap-2">
+                <WishlistButton productId={fragrance.id} size="md" stopPropagation={false} />
                 <MagneticButton
                   variant="ghost"
-                  onClick={() => navigate('/contact')}
+                  onClick={() => {
+                    onClose()
+                    navigate(`/fragrances/${fragrance.slug}`)
+                  }}
                 >
-                  Enquire
+                  Full details
                 </MagneticButton>
-                <MagneticButton variant="primary">Reserve</MagneticButton>
+                <MagneticButton
+                  variant="primary"
+                  onClick={() => {
+                    cart.addItem(fragrance, fragrance.sizes[size].ml, 1)
+                    onClose()
+                    cart.openCart()
+                  }}
+                >
+                  Add to Cart
+                </MagneticButton>
               </div>
             </div>
           </motion.aside>
